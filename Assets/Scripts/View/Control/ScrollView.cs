@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Core.Game;
@@ -15,7 +16,11 @@ namespace View.Control
 	/// </summary>
 	public class ScrollView : MonoBehaviour
 	{
+		public static ScrollView instance;
 		public GameObject PuzzleGamePrefab;
+
+		public MessagePanel ThreatPanel;
+		public MessagePanel SafePanel;
 
 		private bool _scrollEnabled;
 
@@ -42,6 +47,7 @@ namespace View.Control
 
 		private void Awake()
 		{
+			instance = this;
             // Set the maximum number of simultaneous tweens
             LeanTween.init(30000);
 
@@ -106,7 +112,7 @@ namespace View.Control
 
 			transform.position = Vector3.up * mid;
 			
-			puzzleState.Init(_selectedLevel);
+			puzzleState.Init(_selectedLevel,showMessage:true);
 		}
 
 		private void FixedUpdate()
@@ -394,6 +400,21 @@ namespace View.Control
 
 		private void OnPuzzleWin(int level)
 		{
+			Debug.Log($"Level {level} completed");
+			SafePanel.Show(GetComponent<MessagesData>().SafeMessages[level]);
+			SafePanel.GetComponent<Button>().onClick.RemoveAllListeners();
+			SafePanel.GetComponent<Button>().onClick.AddListener(() => {
+				winPanelClick = true;
+				SafePanel.gameObject.SetActive(false);
+			});
+			StartCoroutine(iOnPuzzleWin(level));
+			
+		}
+		bool winPanelClick = false;
+		IEnumerator iOnPuzzleWin(int level)
+		{
+			yield return new WaitUntil(() => winPanelClick);
+			winPanelClick = false;
 			var puzzleState = _levels[_selectedLevel].GetComponent<PuzzleState>();
 			
 			puzzleState.BoardEnabled = false;
@@ -436,18 +457,20 @@ namespace View.Control
 			const float initDelay = 0.5f;
 			LeanTween.delayedCall(initDelay, () => {
 				puzzleState.GetComponent<PuzzleState>().BoardEnabled = true;
-				puzzleState.Init(_selectedLevel);
+				puzzleState.Init(_selectedLevel,showMessage:true);
 				
 				_levels[_selectedLevel].GetComponent<PuzzleView>().ResumeView();
 			});
 
 			if (_selectedLevel >= _levels.Length - 1) {
-				return;
+				// return;
 			}
-			
-			var next = _levels[_selectedLevel + 1];
-			next.GetComponent<PuzzleState>().DestroyBoard(false);
-			next.GetComponentInChildren<PuzzleInfo>().Hide();
+			else
+			{
+				var next = _levels[_selectedLevel + 1];
+				next.GetComponent<PuzzleState>().DestroyBoard(false);
+				next.GetComponentInChildren<PuzzleInfo>().Hide();
+			}
 		}
 
 		private void OnPan(TKPanRecognizer recognizer)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Core.Data;
@@ -127,8 +128,13 @@ namespace View.Game
         /// <summary>
         /// Entry point to create a new level
         /// </summary>
-        public void Init(int level, float animationSpeed = 1f, float delayScale = 1f, bool restart = false)
+        public void Init(int level, float animationSpeed = 1f, float delayScale = 1f, bool restart = false,bool showMessage = false)
         {
+            if (showMessage)
+            {
+                StartCoroutine(iShowMessage(ScrollView.instance.GetComponent<MessagesData>().ThreatMessages[CurrentLevel]));
+                Debug.Log("Init Level" + level);
+            }
             if (level < 0 || level > _puzzleSpawner.LevelCount) {
                 Debug.LogWarning("Requested level is outside of bounds, ignoring request");
                 return;
@@ -172,6 +178,12 @@ namespace View.Game
             LevelStateChanged?.Invoke(LevelState(), _puzzle.Win);
         }
 
+        IEnumerator iShowMessage(MessageData messageData)
+        {
+            yield return new WaitForSeconds(3);
+            ScrollView.instance.ThreatPanel.Show(messageData);
+        }
+
         public void NextLevel(float delay = 0f)
         {
             Init(CurrentLevel == Levels.LevelCount - 1 ? CurrentLevel : CurrentLevel + 1);
@@ -179,7 +191,7 @@ namespace View.Game
         
         public void RestartLevel(float delay = 0f)
         {
-            Init(CurrentLevel, restart: true);
+            Init(CurrentLevel, restart: true, showMessage: true);
         }
 
         public void PrevLevel(float delay = 0f)
